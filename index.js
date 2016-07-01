@@ -50,7 +50,7 @@ class Collab {
     pm.on.transform.add(this.onTransform = transform => {
       for (let i = 0; i < transform.steps.length; i++) {
         this.unconfirmedSteps.push(transform.steps[i])
-        this.unconfirmedMaps.push(transform.maps[i])
+        this.unconfirmedMaps.push(transform.mapping.maps[i])
       }
       this.mustSend.dispatch()
     })
@@ -112,17 +112,17 @@ class Collab {
     this.versionDoc = transform.doc
 
     // Move the remaining unconfirmed steps across the new steps
-    let newMaps = transform.maps.slice(ours)
+    let newMaps = transform.mapping.maps.slice(ours)
     let rebased = rebaseSteps(transform.doc, newMaps,
                               this.unconfirmedSteps.slice(ours), this.unconfirmedMaps.slice(ours))
     this.unconfirmedSteps = rebased.transform.steps.slice()
-    this.unconfirmedMaps = rebased.transform.maps.slice()
+    this.unconfirmedMaps = rebased.transform.mapping.maps.slice()
 
     let selectionBefore = this.pm.selection
     this.pm.updateDoc(rebased.doc, rebased.mapping)
     if (this.pm.history) this.pm.history.rebased(newMaps, rebased.transform, rebased.positions)
     this.receivedTransform.dispatch(transform, selectionBefore)
-    return transform.maps
+    return transform.mapping
   }
 }
 
