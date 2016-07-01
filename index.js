@@ -29,11 +29,10 @@ class Collab {
     // in the option object, for the editor's value when the option
     // was enabled.
     this.version = options.version
-    this.versionDoc = pm.doc
     if (pm.history) pm.history.preserveItems++
 
     this.unconfirmedSteps = []
-    this.unconfirmedMaps = []
+    this.unconfirmedInverted = []
 
     // :: Subscription<()>
     // Fired when there are new steps to send to the central
@@ -47,16 +46,21 @@ class Collab {
     // as arguments to the handler.
     this.receivedTransform = new Subscription
 
-    pm.on.transform.add(this.onTransform = transform => {
-      for (let i = 0; i < transform.steps.length; i++) {
-        this.unconfirmedSteps.push(transform.steps[i])
-        this.unconfirmedMaps.push(transform.mapping.maps[i])
-      }
+    pm.on.transform.add(this.onTransform = (transform, _, options) => {
+      if (options.rebased != null) return
+      this.addUnconfirmed(transform)
       this.mustSend.dispatch()
     })
     pm.on.beforeSetDoc.add(this.onSetDoc = () => {
       throw new RangeError("setDoc is not supported on a collaborative editor")
     })
+  }
+
+  addUnconfirmed(transform, start = 0) {
+    for (let i = start; i < transform.steps.length; i++) {
+      this.unconfirmedSteps.push(transform.steps[i])
+      this.unconfirmedInverted.push(transform.steps[i].invert(transform.docs[i]))
+    }
   }
 
   detach() {
@@ -84,7 +88,7 @@ class Collab {
     }
   }
 
-  // :: ([Step], [number]) → [PosMap]
+  // :: ([Step], [number])
   // Pushes a set of steps (received from the central authority) into
   // the editor. Will recognize its own changes, and confirm
   // unconfirmed steps as appropriate. Remaining unconfirmed steps
@@ -93,36 +97,31 @@ class Collab {
   // Returns the [position maps](#PosMap) produced by applying the
   // steps.
   receive(steps, clientIDs) {
+    this.version += steps.length
+
     // Find out which prefix of the steps originated with us
     let ours = 0
     while (ours < clientIDs.length && clientIDs[ours] == this.clientID) ++ours
-
-    this.version += steps.length
-    if (ours == clientIDs.length && ours == this.unconfirmedSteps.length) {
-      // If all steps originated with us, and we didn't make any new
-      // steps in the meantime, we simply forward the confirmed state
-      // to the current state.
-      this.versionDoc = this.pm.doc
-      this.unconfirmedSteps.length = this.unconfirmedMaps.length = 0
-      return []
+    if (ours) {
+      this.unconfirmedSteps = this.unconfirmedSteps.slice(ours)
+      this.unconfirmedInverted = this.unconfirmedInverted.slice(ours)
+      steps = steps.slice(ours)
     }
 
-    let transform = new Transform(this.versionDoc)
-    steps.forEach(step => transform.step(step))
-    this.versionDoc = transform.doc
+    // If all steps originated with us, we're done.
+    if (!steps.length) return
 
-    // Move the remaining unconfirmed steps across the new steps
-    let newMaps = transform.mapping.maps.slice(ours)
-    let rebased = rebaseSteps(transform.doc, newMaps,
-                              this.unconfirmedSteps.slice(ours), this.unconfirmedMaps.slice(ours))
-    this.unconfirmedSteps = rebased.transform.steps.slice()
-    this.unconfirmedMaps = rebased.transform.mapping.maps.slice()
+    let nUnconfirmed = this.unconfirmedSteps.length
+    let transform = new Transform(this.pm.doc)
+    if (nUnconfirmed) {
+      rebaseSteps(transform, this.unconfirmedSteps, this.unconfirmedInverted, steps)
+    } else {
+      for (let i = 0; i < steps.length; i++) transform.step(steps[i])
+    }
+    this.unconfirmedSteps.length = this.unconfirmedInverted.length = 0
+    this.addUnconfirmed(transform, nUnconfirmed + steps.length)
 
-    let selectionBefore = this.pm.selection
-    this.pm.updateDoc(rebased.doc, rebased.mapping)
-    if (this.pm.history) this.pm.history.rebased(newMaps, rebased.transform, rebased.positions)
-    this.receivedTransform.dispatch(transform, selectionBefore)
-    return transform.mapping
+    this.pm.apply(transform, {rebased: nUnconfirmed, addToHistory: false})
   }
 }
 
