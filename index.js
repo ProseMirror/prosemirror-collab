@@ -1,6 +1,5 @@
 const {Transform} = require("../transform")
 const RopeSequence = require("rope-sequence")
-const {historyPlugin} = require("../history")
 
 const {rebaseSteps} = require("./rebase")
 exports.rebaseSteps = rebaseSteps
@@ -37,9 +36,17 @@ class CollabState {
     this.unconfirmed = unconfirmed
   }
 
-  applyTransform(transform, options) {
-    return options.newCollabState ||
-      new CollabState(this.version, this.clientID, this.unconfirmed.append(unconfirmedFrom(transform)))
+  // :: () → ?{version: number, steps: [Step], clientID: number}
+  // Provides the data describing the editor's unconfirmed steps. The
+  // version and array of steps are the things you'd send to the
+  // central authority. Returns null when there is nothing to send.
+  sendableSteps() {
+    if (this.unconfirmed.length == 0) return null
+    return {
+      version: this.version,
+      steps: this.unconfirmed.map(s => s.step),
+      clientID: this.clientID
+    }
   }
 }
 
@@ -83,24 +90,6 @@ function receiveSteps(state, steps, clientIDs) {
   let newCollabState = new CollabState(version, collab.clientID, unconfirmed)
   return state.applyTransform(transform, {rebased: nUnconfirmed, addToHistory: false, newCollabState})
 }
-exports.receiveSteps = receiveSteps
-
-// :: (EditorState) → ?{version: number, steps: [Step], clientID: number}
-// Provides the data describing the editor's unconfirmed steps. The
-// version and array of steps are the things you'd send to the
-// central authority. Returns null when there is nothing to send.
-function sendableSteps(state) {
-  let collab = state.collab
-  if (collab.unconfirmed.length == 0) return null
-  return {
-    version: collab.version,
-    steps: collab.unconfirmed.map(s => s.step),
-    clientID: collab.clientID
-  }
-}
-exports.sendableSteps = sendableSteps
-
-const pluginID = {plugin: "collab"}
 
 // :: (?Object) → Object
 //
@@ -109,15 +98,22 @@ const pluginID = {plugin: "collab"}
 //
 // You can pass a `version` option, which determines the starting
 // version number of the collaborative editing, and defaults to 0.
-function collabEditing(options) {
+exports.collab = function(options) {
   return {
-    identity: pluginID,
+    stateFields: {
+      collab: {
+        init: () => new CollabState(options && options.version || 0, randomID(), RopeSequence.empty),
+        applyTransform({collab}, transform, options) {
+          return options.newCollabState ||
+            new CollabState(collab.version, collab.clientID, collab.unconfirmed.append(unconfirmedFrom(transform)))
+        }
+      }
+    },
 
-    dependencies: [
-      historyPlugin({preserveItems: true})
-    ],
-
-    stateFields: {collab: () => new CollabState(options && options.version || 0, randomID(), RopeSequence.empty)}
+    stateMethods: {
+      collabReceive(steps, clientIDs) {
+        return receiveSteps(this, steps, clientIDs)
+      }
+    }
   }
 }
-exports.collabEditing = collabEditing
