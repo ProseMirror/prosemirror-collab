@@ -100,7 +100,7 @@ function receiveSteps(state, steps, clientIDs) {
 // version number of the collaborative editing, and defaults to 0.
 exports.collab = function(options) {
   return {
-    fields: {
+    stateFields: {
       collab: {
         init: () => new CollabState(options && options.version || 0, randomID(), RopeSequence.empty),
         applyTransform({collab}, transform, options) {
@@ -110,7 +110,7 @@ exports.collab = function(options) {
       }
     },
 
-    methods: {
+    stateMethods: {
       collabReceive(steps, clientIDs) {
         return receiveSteps(this, steps, clientIDs)
       }
