@@ -1,4 +1,3 @@
-const {Transform} = require("../transform")
 const RopeSequence = require("rope-sequence")
 
 const {rebaseSteps} = require("./rebase")
@@ -8,8 +7,6 @@ exports.rebaseSteps = rebaseSteps
 // for collaborative editing can be hooked. See [this
 // guide](guide/collab.html) for more details and an example.
 
-function randomID() { return Math.floor(Math.random() * 0xFFFFFFFF) }
-
 // ;; This state field accumulates changes that have to be sent to the
 // central authority in the collaborating group and makes it possible
 // to integrate changes made by peers into our local document. It is
@@ -17,7 +14,7 @@ function randomID() { return Math.floor(Math.random() * 0xFFFFFFFF) }
 // [plugin](#collabEditing) is enabled, and will be available as the
 // `collab` field in the resulting editor state.
 class CollabState {
-  constructor(version, clientID, unconfirmed) {
+  constructor(version, unconfirmed) {
     // : number
     // The version number of the last update received from the central
     // authority. Starts at 0 or the value of the `version` property
@@ -25,28 +22,10 @@ class CollabState {
     // was enabled.
     this.version = version
 
-    // : number
-    // This client's random ID. Used to identify the origin of
-    // changes.
-    this.clientID = clientID
-
     // : RopeSequence<{step: Step, inverted: Step}>
     // The local steps that havent been successfully sent to the
     // server yet.
     this.unconfirmed = unconfirmed
-  }
-
-  // :: () → ?{version: number, steps: [Step], clientID: number}
-  // Provides the data describing the editor's unconfirmed steps. The
-  // version and array of steps are the things you'd send to the
-  // central authority. Returns null when there is nothing to send.
-  sendableSteps() {
-    if (this.unconfirmed.length == 0) return null
-    return {
-      version: this.version,
-      steps: this.unconfirmed.map(s => s.step),
-      clientID: this.clientID
-    }
   }
 }
 
@@ -58,28 +37,27 @@ function unconfirmedFrom(transform, start = 0) {
   return add
 }
 
-// :: (EditorState, [Step], [number]) → EditorState
 // Pushes a set of steps (received from the central authority) into
 // the editor state (which should have the collab plugin enabled).
 // Will recognize its own changes, and confirm unconfirmed steps as
 // appropriate. Remaining unconfirmed steps will be rebased over
 // remote steps.
-function receiveSteps(state, steps, clientIDs) {
+function receiveAction(state, steps, clientIDs, ourID) {
   let collab = state.collab
   let version = collab.version + steps.length
 
   // Find out which prefix of the steps originated with us
   let ours = 0
-  while (ours < clientIDs.length && clientIDs[ours] == collab.clientID) ++ours
+  while (ours < clientIDs.length && clientIDs[ours] == ourID) ++ours
   let unconfirmed = collab.unconfirmed.slice(ours)
   steps = ours ? steps.slice(ours) : steps
 
   // If all steps originated with us, we're done.
   if (!steps.length)
-    return state.update({collab: new CollabState(version, collab.clientID, unconfirmed)})
+    return {type: "collabConfirm", collabState: new CollabState(version, unconfirmed)}
 
   let nUnconfirmed = unconfirmed.length
-  let transform = new Transform(state.doc)
+  let transform = state.tr
   if (nUnconfirmed) {
     rebaseSteps(transform, unconfirmed.map(s => s.step), unconfirmed.map(s => s.inverted), steps)
   } else {
@@ -87,8 +65,8 @@ function receiveSteps(state, steps, clientIDs) {
   }
 
   unconfirmed = RopeSequence.from(unconfirmedFrom(transform, nUnconfirmed + steps.length))
-  let newCollabState = new CollabState(version, collab.clientID, unconfirmed)
-  return state.applyTransform(transform, {rebased: nUnconfirmed, addToHistory: false, newCollabState})
+  let newCollabState = new CollabState(version, unconfirmed)
+  return transform.action({rebased: nUnconfirmed, addToHistory: false, newCollabState})
 }
 
 // :: (?Object) → Object
@@ -99,20 +77,39 @@ function receiveSteps(state, steps, clientIDs) {
 // You can pass a `version` option, which determines the starting
 // version number of the collaborative editing, and defaults to 0.
 exports.collab = function(options) {
+  const clientID = options && options.clientID || Math.floor(Math.random() * 0xFFFFFFFF)
+
   return {
     stateFields: {
       collab: {
-        init: () => new CollabState(options && options.version || 0, randomID(), RopeSequence.empty),
-        applyTransform({collab}, transform, options) {
-          return options.newCollabState ||
-            new CollabState(collab.version, collab.clientID, collab.unconfirmed.append(unconfirmedFrom(transform)))
+        init: () => new CollabState(options && options.version || 0, RopeSequence.empty),
+        applyAction({collab}, action) {
+          if (action.type == "transform")
+            return action.newCollabState ||
+              new CollabState(collab.version, collab.unconfirmed.append(unconfirmedFrom(action.transform)))
+          if (action.type == "collabConfirm")
+            return action.collabState
+          return collab
         }
       }
     },
 
-    stateMethods: {
-      collabReceive(steps, clientIDs) {
-        return receiveSteps(this, steps, clientIDs)
+    clientID,
+
+    receiveAction(state, steps, clientIDs) {
+      return receiveAction(state, steps, clientIDs, clientID)
+    },
+
+    // :: () → ?{version: number, steps: [Step], clientID: number}
+    // Provides the data describing the editor's unconfirmed steps. The
+    // version and array of steps are the things you'd send to the
+    // central authority. Returns null when there is nothing to send.
+    sendableSteps(state) {
+      if (state.collab.unconfirmed.length == 0) return null
+      return {
+        version: state.collab.version,
+        steps: state.collab.unconfirmed.map(s => s.step),
+        clientID
       }
     }
   }
