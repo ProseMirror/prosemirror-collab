@@ -66,7 +66,7 @@ function receiveAction(state, steps, clientIDs, ourID) {
 
   unconfirmed = RopeSequence.from(unconfirmedFrom(transform, nUnconfirmed + steps.length))
   let newCollabState = new CollabState(version, unconfirmed)
-  return transform.action({rebased: nUnconfirmed, addToHistory: false, newCollabState})
+  return transform.action({rebased: nUnconfirmed, addToHistory: false, newCollabState, interaction: false})
 }
 
 // :: (?Object) → Object
