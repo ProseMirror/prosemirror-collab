@@ -11,7 +11,7 @@ exports.rebaseSteps = rebaseSteps
 // the central authority in the collaborating group and makes it
 // possible to integrate changes made by peers into our local
 // document. It is created and attached to the editor when the
-// [plugin](#collabEditing) is enabled, and will be available as the
+// [plugin](#collab.collab) is enabled, and will be available as the
 // `collab` field in the resulting editor state.
 class CollabState {
   constructor(version, unconfirmed) {
