@@ -98,7 +98,7 @@ function receiveAction(state, steps, clientIDs, ourID) {
 //     version and array of steps are the things you'd send to the
 //     central authority. Returns null when there is nothing to send.
 function collab(options) {
-  const clientID = options && options.clientID
+  let clientID = options && options.clientID
   if (clientID == null) clientID =  Math.floor(Math.random() * 0xFFFFFFFF)
 
   return {
