@@ -95,7 +95,7 @@ const plugin = new Plugin({
 // Creates a plugin that enables the collaborative editing framework
 // for the editor.
 //
-//   options::- An optional set of options
+//   config::- An optional set of options
 //
 //     version:: ?number
 //     The starting version number of the collaborative editing.
