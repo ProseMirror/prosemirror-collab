@@ -93,11 +93,11 @@ function receiveAction(state, steps, clientIDs, ourID) {
 //     from the authority. Applying this action moves the state
 //     forward along with the authority's view of the document.
 //
-//     sendableSteps:: () → ?{version: number, steps: [Step], clientID: number}
+//     sendableSteps:: (state: EditorState) → ?{version: number, steps: [Step], clientID: number}
 //     Provides the data describing the editor's unconfirmed steps. The
 //     version and array of steps are the things you'd send to the
 //     central authority. Returns null when there is nothing to send.
-exports.collab = function(options) {
+function collab(options) {
   const clientID = options && options.clientID
   if (clientID == null) clientID =  Math.floor(Math.random() * 0xFFFFFFFF)
 
@@ -132,3 +132,4 @@ exports.collab = function(options) {
     }
   }
 }
+exports.collab = collab
