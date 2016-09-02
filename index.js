@@ -4,10 +4,6 @@ const RopeSequence = require("rope-sequence")
 const {rebaseSteps} = require("./rebase")
 exports.rebaseSteps = rebaseSteps
 
-// !! This module implements an API into which a communication channel
-// for collaborative editing can be hooked. See [this
-// guide](guide/collab.html) for more details and an example.
-
 // This state field accumulates changes that have to be sent to the
 // central authority in the collaborating group and makes it possible
 // to integrate changes made by peers into our local document. It is
