@@ -20,6 +20,9 @@
     "rope-sequence": "^1.2.0"
   },
   "devDependencies": {
+    "prosemirror-model": "^0.11.0",
+    "prosemirror-transform": "^0.11.0",
+    "prosemirror-history": "^0.11.0",
     "ist": "^1.0.0",
     "mocha": "^3.0.2",
     "rimraf": "^2.5.4"
