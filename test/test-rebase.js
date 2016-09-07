@@ -1,6 +1,6 @@
 const {Transform} = require("prosemirror-transform")
 const ist = require("ist")
-const {schema, sameDoc, doc, blockquote, p, li, ul, em} = require("prosemirror-model/test/build")
+const {schema, eq, doc, blockquote, p, li, ul, em} = require("prosemirror-model/test/build")
 
 const {rebaseSteps} = require("../src/collab")
 
@@ -14,7 +14,7 @@ function runRebase(transforms, expected) {
     for (let i = start; i < rebased.steps.length; i++) full.step(rebased.steps[i])
   })
   
-  ist(full.doc, expected, sameDoc)
+  ist(full.doc, expected, eq)
 
   for (let tag in start.tag) {
     let mapped = full.mapping.mapResult(start.tag[tag])

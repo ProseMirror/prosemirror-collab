@@ -1,6 +1,6 @@
 const {EditorState, Selection} = require("prosemirror-state")
 const {history, undo, redo} = require("prosemirror-history")
-const {schema, sameDoc, doc, p} = require("prosemirror-model/test/build")
+const {schema, eq, doc, p} = require("prosemirror-model/test/build")
 const ist = require("ist")
 
 const {collab, receiveAction, sendableSteps} = require("../src/collab")
@@ -57,7 +57,7 @@ class DummyServer {
 
   conv(d) {
     if (typeof d == "string") d = doc(p(d))
-    this.states.forEach((state, i) => ist(state.doc, d, sameDoc))
+    this.states.forEach((state, i) => ist(state.doc, d, eq))
   }
 
   delay(n, f) {
