@@ -4,6 +4,8 @@ collaborative editing can be hooked. See
 
 @collab
 
+@getVersion
+
 @receiveAction
 
 @sendableSteps

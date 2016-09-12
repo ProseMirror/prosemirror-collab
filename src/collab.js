@@ -144,3 +144,11 @@ function sendableSteps(state) {
   }
 }
 exports.sendableSteps = sendableSteps
+
+// :: (EditorState) → number
+// Get the version up to which the collab plugin has synced with the
+// central authority.
+function getVersion(state) {
+  return state.collab.version
+}
+exports.getVersion = getVersion
