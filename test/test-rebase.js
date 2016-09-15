@@ -13,7 +13,7 @@ function runRebase(transforms, expected) {
                             full.steps)
     for (let i = start; i < rebased.steps.length; i++) full.step(rebased.steps[i])
   })
-  
+
   ist(full.doc, expected, eq)
 
   for (let tag in start.tag) {

@@ -57,7 +57,7 @@ class DummyServer {
 
   conv(d) {
     if (typeof d == "string") d = doc(p(d))
-    this.states.forEach((state, i) => ist(state.doc, d, eq))
+    this.states.forEach(state => ist(state.doc, d, eq))
   }
 
   delay(n, f) {
