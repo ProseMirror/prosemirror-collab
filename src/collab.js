@@ -111,7 +111,8 @@ const plugin = new Plugin({
 //     Defaults to 0.
 //
 //     clientID:: ?number
-//     This client's ID. Defaults to a random 32-bit number.
+//     This client's ID, used to distinguish its changes from those of
+//     other clients. Defaults to a random 32-bit number.
 function collab(config) {
   let clientID = config && config.clientID
   if (clientID == null) clientID =  Math.floor(Math.random() * 0xFFFFFFFF)
@@ -124,17 +125,17 @@ exports.collab = collab
 
 // :: (state: EditorState, steps: [Step], clientIDs: [number]) → Action
 // Create an action that represents a set of new steps received from
-// the authority. Applying this action moves the state forward along
-// with the authority's view of the document.
+// the authority. Applying this action moves the state forward to
+// adjust to the authority's view of the document.
 function receiveAction(state, steps, clientIDs) {
   return makeReceiveAction(state, steps, clientIDs, plugin.find(state).config.clientID)
 }
 exports.receiveAction = receiveAction
 
 // :: (state: EditorState) → ?{version: number, steps: [Step], clientID: number}
-// Provides the data describing the editor's unconfirmed steps. The
-// version and array of steps are the things you'd send to the
-// central authority. Returns null when there is nothing to send.
+// Provides the data describing the editor's unconfirmed steps, which
+// you'd send to the central authority. Returns null when there is
+// nothing to send.
 function sendableSteps(state) {
   if (state.collab.unconfirmed.length == 0) return null
   return {
