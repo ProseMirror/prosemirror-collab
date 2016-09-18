@@ -3,7 +3,7 @@ const {history, undo, redo} = require("prosemirror-history")
 const {schema, eq, doc, p} = require("prosemirror-model/test/build")
 const ist = require("ist")
 
-const {collab, receiveAction, sendableSteps} = require("../src/collab")
+const {collab, receiveAction, sendableSteps} = require("../dist/collab")
 
 const histPlugin = history.configure({preserveItems: true})
 

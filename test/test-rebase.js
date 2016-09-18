@@ -2,7 +2,7 @@ const {Transform} = require("prosemirror-transform")
 const ist = require("ist")
 const {schema, eq, doc, blockquote, p, li, ul, em} = require("prosemirror-model/test/build")
 
-const {rebaseSteps} = require("../src/collab")
+const {rebaseSteps} = require("../dist/collab")
 
 function runRebase(transforms, expected) {
   let start = transforms[0].before, full = new Transform(start)
