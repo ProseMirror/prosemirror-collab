@@ -1,6 +1,6 @@
 {
   "name": "prosemirror-collab",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Collaborative editing for ProseMirror",
   "main": "dist/collab.js",
   "license": "MIT",
