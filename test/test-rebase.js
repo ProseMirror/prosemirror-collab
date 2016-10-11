@@ -93,14 +93,14 @@ describe("rebaseSteps", () => {
     rebase$(doc(p("hello<1> wo<2>rld<3>!")),
             tr => tr.delete(6, 12),
             tr => type(tr, 9, "X"),
-            doc(p("hello<1><3>!")))
+            doc(p("hello<3>!")))
   })
 
   it("allows deleting the same content twice", () => {
     rebase(doc(p("hello<1> wo<2>rld<3>!")),
            tr => tr.delete(6, 12),
            tr => tr.delete(6, 12),
-           doc(p("hello<1><3>!")))
+           doc(p("hello<3>!")))
   })
 
   it("isn't confused by joining a block that's being edited", () => {
@@ -135,7 +135,7 @@ describe("rebaseSteps", () => {
     rebase(doc(p("b<before>efore"), blockquote(ul(li(p("o<1>ne")), li(p("t<2>wo")), li(p("thr<3>ee")))), p("a<after>fter")),
            tr => tr.replace(tr.doc.tag[1], tr.doc.tag[3], doc(p("a"), blockquote(p("b")), p("c")).slice(2, 9)),
            tr => type(tr, tr.doc.tag[2], "ayay"),
-           doc(p("b<before>efore"), blockquote(ul(li(p("o<1>"), blockquote(p("b")), p("<3>ee")))), p("a<after>fter")))
+           doc(p("b<before>efore"), blockquote(ul(li(p("o"), blockquote(p("b")), p("<3>ee")))), p("a<after>fter")))
   })
 
   it("maps through inserts", () => {
@@ -149,14 +149,14 @@ describe("rebaseSteps", () => {
     rebase(doc(p("a"), "<1>", p("b"), "<2>", p("c")),
            tr => tr.delete(tr.doc.tag[1], tr.doc.tag[2]),
            tr => tr.delete(tr.doc.tag[1], tr.doc.tag[2]),
-           doc(p("a"), "<1><2>", p("c")))
+           doc(p("a"), "<2>", p("c")))
   })
 
   it("discards edits in removed blocks", () => {
     rebase$(doc(p("a"), "<1>", p("b<2>"), "<3>", p("c")),
             tr => tr.delete(tr.doc.tag[1], tr.doc.tag[3]),
             tr => type(tr, tr.doc.tag[2], "ay"),
-            doc(p("a"), "<1><3>", p("c")))
+            doc(p("a"), "<3>", p("c")))
   })
 
   it("preserves double block inserts", () => {
