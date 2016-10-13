@@ -52,13 +52,13 @@ function unconfirmedFrom(transform, start = 0) {
 // appropriate. Remaining unconfirmed steps will be rebased over
 // remote steps.
 function makeReceiveAction(state, steps, clientIDs, ourID) {
-  let collab = state.collab
-  let version = collab.version + steps.length
+  let collabState = plugin.getState(state)
+  let version = collabState.version + steps.length
 
   // Find out which prefix of the steps originated with us
   let ours = 0
   while (ours < clientIDs.length && clientIDs[ours] == ourID) ++ours
-  let unconfirmed = collab.unconfirmed.slice(ours)
+  let unconfirmed = collabState.unconfirmed.slice(ours)
   steps = ours ? steps.slice(ours) : steps
 
   // If all steps originated with us, we're done.
@@ -79,19 +79,19 @@ function makeReceiveAction(state, steps, clientIDs, ourID) {
 }
 
 const plugin = new Plugin({
-  stateFields: {
-    collab: {
-      init: (_, state) => new CollabState(plugin.find(state).config.version, RopeSequence.empty),
-      applyAction({collab}, action) {
-        if (action.type == "transform")
-          return action.newCollabState ||
+  state: {
+    init: (_, state) => new CollabState(plugin.find(state).config.version, RopeSequence.empty),
+    applyAction(action, collab) {
+      if (action.type == "transform")
+        return action.newCollabState ||
           new CollabState(collab.version, collab.unconfirmed.append(unconfirmedFrom(action.transform)))
-        if (action.type == "collabConfirm")
-          return action.collabState
-        return collab
-      }
+      if (action.type == "collabConfirm")
+        return action.collabState
+      return collab
     }
   },
+
+  name: "collab",
 
   config: {
     version: 0,
@@ -137,10 +137,11 @@ exports.receiveAction = receiveAction
 // you'd send to the central authority. Returns null when there is
 // nothing to send.
 function sendableSteps(state) {
-  if (state.collab.unconfirmed.length == 0) return null
+  let collabState = plugin.getState(state)
+  if (collabState.unconfirmed.length == 0) return null
   return {
-    version: state.collab.version,
-    steps: state.collab.unconfirmed.map(s => s.step),
+    version: collabState.version,
+    steps: collabState.unconfirmed.map(s => s.step),
     clientID: plugin.find(state).config.clientID
   }
 }
@@ -150,6 +151,6 @@ exports.sendableSteps = sendableSteps
 // Get the version up to which the collab plugin has synced with the
 // central authority.
 function getVersion(state) {
-  return state.collab.version
+  return plugin.getState(state).version
 }
 exports.getVersion = getVersion

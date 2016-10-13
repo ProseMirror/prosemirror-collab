@@ -10,15 +10,19 @@ const histPlugin = history.configure({preserveItems: true})
 class DummyServer {
   constructor(doc, n = 2) {
     this.states = []
-    for (let i = 0; i < n; i++)
-      this.states.push(EditorState.create({doc, schema, plugins: [histPlugin, collab()]}))
+    this.plugins = []
+    for (let i = 0; i < n; i++) {
+      let plugin = collab()
+      this.plugins.push(plugin)
+      this.states.push(EditorState.create({doc, schema, plugins: [histPlugin, plugin]}))
+    }
     this.steps = []
     this.clientIDs = []
     this.delayed = []
   }
 
   sync(n) {
-    let state = this.states[n], version = state.collab.version
+    let state = this.states[n], version = this.plugins[n].getState(state).version
     if (version != this.steps.length)
       this.states[n] = state.applyAction(receiveAction(state, this.steps.slice(version), this.clientIDs.slice(version)))
   }
