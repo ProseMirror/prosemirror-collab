@@ -1,4 +1,4 @@
-const {Plugin} = require("prosemirror-state")
+const {Plugin, PluginKey} = require("prosemirror-state")
 const RopeSequence = require("rope-sequence")
 
 // : (Transform, [Step], [Step], [Step]) → number
@@ -52,7 +52,7 @@ function unconfirmedFrom(transform, start = 0) {
 // appropriate. Remaining unconfirmed steps will be rebased over
 // remote steps.
 function makeReceiveAction(state, steps, clientIDs, ourID) {
-  let collabState = plugin.getState(state)
+  let collabState = collabKey.getState(state)
   let version = collabState.version + steps.length
 
   // Find out which prefix of the steps originated with us
@@ -75,29 +75,15 @@ function makeReceiveAction(state, steps, clientIDs, ourID) {
 
   unconfirmed = RopeSequence.from(unconfirmedFrom(transform, nUnconfirmed + steps.length))
   let newCollabState = new CollabState(version, unconfirmed)
-  return transform.action({rebased: nUnconfirmed, addToHistory: false, newCollabState, interaction: false})
+  return transform.action({
+    rebased: nUnconfirmed,
+    addToHistory: false,
+    collabState: newCollabState,
+    interaction: false
+  })
 }
 
-const plugin = new Plugin({
-  state: {
-    init: (_, state) => new CollabState(plugin.find(state).config.version, RopeSequence.empty),
-    applyAction(action, collab) {
-      if (action.type == "transform")
-        return action.newCollabState ||
-          new CollabState(collab.version, collab.unconfirmed.append(unconfirmedFrom(action.transform)))
-      if (action.type == "collabConfirm")
-        return action.collabState
-      return collab
-    }
-  },
-
-  name: "collab",
-
-  config: {
-    version: 0,
-    clientID: -1
-  }
-})
+const collabKey = new PluginKey("collab")
 
 // :: (?Object) → Plugin
 //
@@ -113,13 +99,27 @@ const plugin = new Plugin({
 //     clientID:: ?number
 //     This client's ID, used to distinguish its changes from those of
 //     other clients. Defaults to a random 32-bit number.
-function collab(config) {
-  let clientID = config && config.clientID
-  if (clientID == null) clientID =  Math.floor(Math.random() * 0xFFFFFFFF)
+function collab(config = {}) {
+  config = {version: config.version || 0,
+            clientID: config.clientID == null ? Math.floor(Math.random() * 0xFFFFFFFF) : config.clientID}
 
-  let reconf = {clientID}
-  if (config && config.version != null) reconf.version = config.version
-  return plugin.configure(reconf)
+  return new Plugin({
+    key: collabKey,
+
+    state: {
+      init: () => new CollabState(config.version, RopeSequence.empty),
+      applyAction(action, collab) {
+        if (action.type == "transform")
+          return action.collabState ||
+            new CollabState(collab.version, collab.unconfirmed.append(unconfirmedFrom(action.transform)))
+        if (action.type == "collabConfirm")
+          return action.collabState
+        return collab
+      }
+    },
+
+    config
+  })
 }
 exports.collab = collab
 
@@ -128,7 +128,7 @@ exports.collab = collab
 // the authority. Applying this action moves the state forward to
 // adjust to the authority's view of the document.
 function receiveAction(state, steps, clientIDs) {
-  return makeReceiveAction(state, steps, clientIDs, plugin.find(state).config.clientID)
+  return makeReceiveAction(state, steps, clientIDs, collabKey.get(state).options.config.clientID)
 }
 exports.receiveAction = receiveAction
 
@@ -137,12 +137,12 @@ exports.receiveAction = receiveAction
 // you'd send to the central authority. Returns null when there is
 // nothing to send.
 function sendableSteps(state) {
-  let collabState = plugin.getState(state)
+  let collabState = collabKey.getState(state)
   if (collabState.unconfirmed.length == 0) return null
   return {
     version: collabState.version,
     steps: collabState.unconfirmed.map(s => s.step),
-    clientID: plugin.find(state).config.clientID
+    clientID: collabKey.get(state).options.config.clientID
   }
 }
 exports.sendableSteps = sendableSteps
@@ -151,6 +151,6 @@ exports.sendableSteps = sendableSteps
 // Get the version up to which the collab plugin has synced with the
 // central authority.
 function getVersion(state) {
-  return plugin.getState(state).version
+  return collabKey.getState(state).version
 }
 exports.getVersion = getVersion
