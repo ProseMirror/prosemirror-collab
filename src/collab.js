@@ -79,7 +79,7 @@ function makeReceiveAction(state, steps, clientIDs, ourID) {
     rebased: nUnconfirmed,
     addToHistory: false,
     collabState: newCollabState,
-    interaction: false
+    sealed: true
   })
 }
 
