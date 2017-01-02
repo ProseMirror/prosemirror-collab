@@ -1,9 +1,9 @@
 const {EditorState, Selection} = require("prosemirror-state")
-const {history, undo, redo} = require("prosemirror-history")
+const {history, undo, redo, closeHistory} = require("prosemirror-history")
 const {schema, eq, doc, p} = require("prosemirror-model/test/build")
 const ist = require("ist")
 
-const {collab, receiveAction, sendableSteps} = require("../dist/collab")
+const {collab, receiveTransaction, sendableSteps} = require("../dist/collab")
 
 const histPlugin = history({preserveItems: true})
 
@@ -24,7 +24,7 @@ class DummyServer {
   sync(n) {
     let state = this.states[n], version = this.plugins[n].getState(state).version
     if (version != this.steps.length)
-      this.states[n] = state.applyAction(receiveAction(state, this.steps.slice(version), this.clientIDs.slice(version)))
+      this.states[n] = state.apply(receiveTransaction(state, this.steps.slice(version), this.clientIDs.slice(version)))
   }
 
   send(n) {
@@ -43,20 +43,20 @@ class DummyServer {
   }
 
   update(n, f) {
-    this.states[n] = this.states[n].applyAction(f(this.states[n]))
+    this.states[n] = this.states[n].apply(f(this.states[n]))
     this.broadcast(n)
   }
 
   type(n, text, pos) {
-    this.update(n, s => s.tr.insertText(text, pos || s.selection.head).action())
+    this.update(n, s => s.tr.insertText(text, pos || s.selection.head))
   }
 
   undo(n) {
-    undo(this.states[n], a => this.update(n, () => a))
+    undo(this.states[n], tr => this.update(n, () => tr))
   }
 
   redo(n) {
-    redo(this.states[n], a => this.update(n, () => a))
+    redo(this.states[n], tr => this.update(n, () => tr))
   }
 
   conv(d) {
@@ -73,9 +73,8 @@ class DummyServer {
 }
 
 function sel(near) {
-  return s => Selection.near(s.doc.resolve(near)).action()
+  return s => s.tr.setSelection(Selection.near(s.doc.resolve(near)))
 }
-function closeHist() { return {type: "historyClose"} }
 
 describe("collab", () => {
   it("converges for simple changes", () => {
@@ -153,12 +152,12 @@ describe("collab", () => {
     s.update(1, sel(11))
     s.type(0, "!")
     s.type(1, "!")
-    s.update(0, closeHist)
+    s.update(0, closeHistory)
     s.delay(0, () => {
       s.type(0, " ...")
       s.type(1, " ,,,")
     })
-    s.update(0, closeHist)
+    s.update(0, closeHistory)
     s.type(0, "*")
     s.type(1, "*")
     s.undo(0)
@@ -185,7 +184,7 @@ describe("collab", () => {
       s.type(0, "B", 4)
       s.type(0, "C", 5)
       s.type(0, "D", 1)
-      s.update(1, s => s.tr.delete(2, 5).action())
+      s.update(1, s => s.tr.delete(2, 5))
     })
     s.conv("DhoA")
     s.undo(0)

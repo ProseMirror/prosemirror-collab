@@ -6,6 +6,6 @@ collaborative editing can be hooked. See
 
 @getVersion
 
-@receiveAction
+@receiveTransaction
 
 @sendableSteps

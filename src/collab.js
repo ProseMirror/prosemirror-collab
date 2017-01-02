@@ -46,43 +46,6 @@ function unconfirmedFrom(transform, start = 0) {
   return add
 }
 
-// Pushes a set of steps (received from the central authority) into
-// the editor state (which should have the collab plugin enabled).
-// Will recognize its own changes, and confirm unconfirmed steps as
-// appropriate. Remaining unconfirmed steps will be rebased over
-// remote steps.
-function makeReceiveAction(state, steps, clientIDs, ourID) {
-  let collabState = collabKey.getState(state)
-  let version = collabState.version + steps.length
-
-  // Find out which prefix of the steps originated with us
-  let ours = 0
-  while (ours < clientIDs.length && clientIDs[ours] == ourID) ++ours
-  let unconfirmed = collabState.unconfirmed.slice(ours)
-  steps = ours ? steps.slice(ours) : steps
-
-  // If all steps originated with us, we're done.
-  if (!steps.length)
-    return {type: "collabConfirm", collabState: new CollabState(version, unconfirmed)}
-
-  let nUnconfirmed = unconfirmed.length
-  let transform = state.tr
-  if (nUnconfirmed) {
-    rebaseSteps(transform, unconfirmed.map(s => s.step), unconfirmed.map(s => s.inverted), steps)
-  } else {
-    for (let i = 0; i < steps.length; i++) transform.step(steps[i])
-  }
-
-  unconfirmed = RopeSequence.from(unconfirmedFrom(transform, nUnconfirmed + steps.length))
-  let newCollabState = new CollabState(version, unconfirmed)
-  return transform.action({
-    rebased: nUnconfirmed,
-    addToHistory: false,
-    collabState: newCollabState,
-    sealed: true
-  })
-}
-
 const collabKey = new PluginKey("collab")
 
 // :: (?Object) → Plugin
@@ -108,12 +71,12 @@ function collab(config = {}) {
 
     state: {
       init: () => new CollabState(config.version, RopeSequence.empty),
-      applyAction(action, collab) {
-        if (action.type == "transform")
-          return action.collabState ||
-            new CollabState(collab.version, collab.unconfirmed.append(unconfirmedFrom(action.transform)))
-        if (action.type == "collabConfirm")
-          return action.collabState
+      apply(tr, collab) {
+        let newState = tr.get(collabKey)
+        if (newState)
+          return newState
+        if (tr.steps.length)
+          return new CollabState(collab.version, collab.unconfirmed.append(unconfirmedFrom(tr)))
         return collab
       }
     },
@@ -123,14 +86,43 @@ function collab(config = {}) {
 }
 exports.collab = collab
 
-// :: (state: EditorState, steps: [Step], clientIDs: [number]) → Action
-// Create an action that represents a set of new steps received from
-// the authority. Applying this action moves the state forward to
+// :: (state: EditorState, steps: [Step], clientIDs: [number]) → Transaction
+// Create a transaction that represents a set of new steps received from
+// the authority. Applying this transaction moves the state forward to
 // adjust to the authority's view of the document.
-function receiveAction(state, steps, clientIDs) {
-  return makeReceiveAction(state, steps, clientIDs, collabKey.get(state).options.config.clientID)
+function receiveTransaction(state, steps, clientIDs) {
+  // Pushes a set of steps (received from the central authority) into
+  // the editor state (which should have the collab plugin enabled).
+  // Will recognize its own changes, and confirm unconfirmed steps as
+  // appropriate. Remaining unconfirmed steps will be rebased over
+  // remote steps.
+  let collabState = collabKey.getState(state)
+  let version = collabState.version + steps.length
+  let ourID = collabKey.get(state).options.config.clientID
+
+  // Find out which prefix of the steps originated with us
+  let ours = 0
+  while (ours < clientIDs.length && clientIDs[ours] == ourID) ++ours
+  let unconfirmed = collabState.unconfirmed.slice(ours)
+  steps = ours ? steps.slice(ours) : steps
+
+  // If all steps originated with us, we're done.
+  if (!steps.length)
+    return state.tr.set(collabKey, new CollabState(version, unconfirmed))
+
+  let nUnconfirmed = unconfirmed.length
+  let tr = state.tr
+  if (nUnconfirmed) {
+    rebaseSteps(tr, unconfirmed.map(s => s.step), unconfirmed.map(s => s.inverted), steps)
+  } else {
+    for (let i = 0; i < steps.length; i++) tr.step(steps[i])
+  }
+
+  unconfirmed = RopeSequence.from(unconfirmedFrom(tr, nUnconfirmed + steps.length))
+  let newCollabState = new CollabState(version, unconfirmed)
+  return tr.set("rebased", nUnconfirmed).set("addToHistory", false).set(collabKey, newCollabState)
 }
-exports.receiveAction = receiveAction
+exports.receiveTransaction = receiveTransaction
 
 // :: (state: EditorState) → ?{version: number, steps: [Step], clientID: number}
 // Provides the data describing the editor's unconfirmed steps, which
