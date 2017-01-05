@@ -75,7 +75,7 @@ function collab(config = {}) {
         let newState = tr.get(collabKey)
         if (newState)
           return newState
-        if (tr.steps.length)
+        if (tr.docChanged)
           return new CollabState(collab.version, collab.unconfirmed.append(unconfirmedFrom(tr)))
         return collab
       }
