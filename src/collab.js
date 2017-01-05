@@ -72,7 +72,7 @@ function collab(config = {}) {
     state: {
       init: () => new CollabState(config.version, RopeSequence.empty),
       apply(tr, collab) {
-        let newState = tr.get(collabKey)
+        let newState = tr.getMeta(collabKey)
         if (newState)
           return newState
         if (tr.docChanged)
@@ -108,7 +108,7 @@ function receiveTransaction(state, steps, clientIDs) {
 
   // If all steps originated with us, we're done.
   if (!steps.length)
-    return state.tr.set(collabKey, new CollabState(version, unconfirmed))
+    return state.tr.setMeta(collabKey, new CollabState(version, unconfirmed))
 
   let nUnconfirmed = unconfirmed.length
   let tr = state.tr
@@ -120,7 +120,7 @@ function receiveTransaction(state, steps, clientIDs) {
 
   unconfirmed = RopeSequence.from(unconfirmedFrom(tr, nUnconfirmed + steps.length))
   let newCollabState = new CollabState(version, unconfirmed)
-  return tr.set("rebased", nUnconfirmed).set("addToHistory", false).set(collabKey, newCollabState)
+  return tr.setMeta("rebased", nUnconfirmed).setMeta("addToHistory", false).setMeta(collabKey, newCollabState)
 }
 exports.receiveTransaction = receiveTransaction
 
