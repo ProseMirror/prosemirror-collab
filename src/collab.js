@@ -1,19 +1,29 @@
 const {Plugin, PluginKey} = require("prosemirror-state")
-const RopeSequence = require("rope-sequence")
 
-// : (Transform, [Step], [Step], [Step]) → number
+class Rebaseable {
+  constructor(step, inverted, origin) {
+    this.step = step
+    this.inverted = inverted
+    this.origin = origin
+  }
+}
+
+// : (Transform, [Rebaseable], [Step]) → [Rebaseable]
 // Undo a given set of steps, apply a set of other steps, and then
 // redo them.
-function rebaseSteps(transform, steps, inverted, inside) {
-  for (let i = inverted.length - 1; i >= 0; i--) transform.step(inverted[i])
-  for (let i = 0; i < inside.length; i++) transform.step(inside[i])
-  for (let i = 0, mapFrom = inverted.length; i < steps.length; i++) {
-    let mapped = steps[i].map(transform.mapping.slice(mapFrom))
+function rebaseSteps(steps, over, transform) {
+  for (let i = steps.length - 1; i >= 0; i--) transform.step(steps[i].inverted)
+  for (let i = 0; i < over.length; i++) transform.step(over[i])
+  let result = []
+  for (let i = 0, mapFrom = steps.length; i < steps.length; i++) {
+    let mapped = steps[i].step.map(transform.mapping.slice(mapFrom))
     mapFrom--
-    if (mapped && !transform.maybeStep(mapped).failed)
+    if (mapped && !transform.maybeStep(mapped).failed) {
       transform.mapping.setMirror(mapFrom, transform.steps.length - 1)
+      result.push(new Rebaseable(mapped, mapped.invert(transform.docs[transform.docs.length - 1]), steps[i].origin))
+    }
   }
-  return inverted.length + inside.length
+  return result
 }
 exports.rebaseSteps = rebaseSteps
 
@@ -31,19 +41,20 @@ class CollabState {
     // was enabled.
     this.version = version
 
-    // : RopeSequence<{step: Step, inverted: Step}>
+    // : [Rebaseable]
     // The local steps that havent been successfully sent to the
     // server yet.
     this.unconfirmed = unconfirmed
   }
 }
 
-function unconfirmedFrom(transform, start = 0) {
-  let add = []
-  for (let i = start; i < transform.steps.length; i++)
-    add.push({step: transform.steps[i],
-              inverted: transform.steps[i].invert(transform.docs[i])})
-  return add
+function unconfirmedFrom(transform) {
+  let result = []
+  for (let i = 0; i < transform.steps.length; i++)
+    result.push(new Rebaseable(transform.steps[i],
+                               transform.steps[i].invert(transform.docs[i]),
+                               transform))
+  return result
 }
 
 const collabKey = new PluginKey("collab")
@@ -70,13 +81,13 @@ function collab(config = {}) {
     key: collabKey,
 
     state: {
-      init: () => new CollabState(config.version, RopeSequence.empty),
+      init: () => new CollabState(config.version, []),
       apply(tr, collab) {
         let newState = tr.getMeta(collabKey)
         if (newState)
           return newState
         if (tr.docChanged)
-          return new CollabState(collab.version, collab.unconfirmed.append(unconfirmedFrom(tr)))
+          return new CollabState(collab.version, collab.unconfirmed.concat(unconfirmedFrom(tr)))
         return collab
       }
     },
@@ -113,12 +124,12 @@ function receiveTransaction(state, steps, clientIDs) {
   let nUnconfirmed = unconfirmed.length
   let tr = state.tr
   if (nUnconfirmed) {
-    rebaseSteps(tr, unconfirmed.map(s => s.step), unconfirmed.map(s => s.inverted), steps)
+    unconfirmed = rebaseSteps(unconfirmed, steps, tr)
   } else {
     for (let i = 0; i < steps.length; i++) tr.step(steps[i])
+    unconfirmed = []
   }
 
-  unconfirmed = RopeSequence.from(unconfirmedFrom(tr, nUnconfirmed + steps.length))
   let newCollabState = new CollabState(version, unconfirmed)
   return tr.setMeta("rebased", nUnconfirmed).setMeta("addToHistory", false).setMeta(collabKey, newCollabState)
 }
