@@ -135,17 +135,24 @@ function receiveTransaction(state, steps, clientIDs) {
 }
 exports.receiveTransaction = receiveTransaction
 
-// :: (state: EditorState) → ?{version: number, steps: [Step], clientID: number}
+// :: (state: EditorState) → ?{version: number, steps: [Step], clientID: number, origins: [Transaction]}
 // Provides the data describing the editor's unconfirmed steps, which
 // you'd send to the central authority. Returns null when there is
 // nothing to send.
+//
+// `origins` holds the _original_ transactions that produced each
+// steps. This can be useful for looking up time stamps and other
+// metadata for the steps, but note that the steps may have been
+// rebased, whereas the origin transactions are still the old,
+// unchanged objects.
 function sendableSteps(state) {
   let collabState = collabKey.getState(state)
   if (collabState.unconfirmed.length == 0) return null
   return {
     version: collabState.version,
     steps: collabState.unconfirmed.map(s => s.step),
-    clientID: collabKey.get(state).options.config.clientID
+    clientID: collabKey.get(state).options.config.clientID,
+    get origins() { return this._origins || (this._origins = collabState.unconfirmed.map(s => s.origin)) }
   }
 }
 exports.sendableSteps = sendableSteps
