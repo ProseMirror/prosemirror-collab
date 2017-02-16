@@ -109,7 +109,7 @@ function receiveTransaction(state, steps, clientIDs) {
   // remote steps.
   let collabState = collabKey.getState(state)
   let version = collabState.version + steps.length
-  let ourID = collabKey.get(state).options.config.clientID
+  let ourID = collabKey.get(state).spec.config.clientID
 
   // Find out which prefix of the steps originated with us
   let ours = 0
@@ -151,7 +151,7 @@ function sendableSteps(state) {
   return {
     version: collabState.version,
     steps: collabState.unconfirmed.map(s => s.step),
-    clientID: collabKey.get(state).options.config.clientID,
+    clientID: collabKey.get(state).spec.config.clientID,
     get origins() { return this._origins || (this._origins = collabState.unconfirmed.map(s => s.origin)) }
   }
 }
