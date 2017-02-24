@@ -192,4 +192,21 @@ describe("collab", () => {
     s.conv("ho")
     ist(s.states[0].selection.head, 3)
   })
+
+  it("can undo simultaneous typing", () => {
+    let s = new DummyServer(doc(p("A"), p("B")))
+    s.update(0, sel(2))
+    s.update(1, sel(5))
+    s.delay(0, () => {
+      s.type(0, "1")
+      s.type(0, "2")
+      s.type(1, "x")
+      s.type(1, "y")
+    })
+    s.conv(doc(p("A12"), p("Bxy")))
+    s.undo(0)
+    s.conv(doc(p("A"), p("Bxy")))
+    s.undo(1)
+    s.conv(doc(p("A"), p("B")))
+  })
 })
