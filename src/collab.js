@@ -70,7 +70,7 @@ const collabKey = new PluginKey("collab")
 //     The starting version number of the collaborative editing.
 //     Defaults to 0.
 //
-//     clientID:: ?number
+//     clientID:: ?union<number, string>
 //     This client's ID, used to distinguish its changes from those of
 //     other clients. Defaults to a random 32-bit number.
 function collab(config = {}) {
@@ -97,7 +97,7 @@ function collab(config = {}) {
 }
 exports.collab = collab
 
-// :: (state: EditorState, steps: [Step], clientIDs: [number]) → Transaction
+// :: (state: EditorState, steps: [Step], clientIDs: [union<number, string>]) → Transaction
 // Create a transaction that represents a set of new steps received from
 // the authority. Applying this transaction moves the state forward to
 // adjust to the authority's view of the document.
@@ -135,7 +135,7 @@ function receiveTransaction(state, steps, clientIDs) {
 }
 exports.receiveTransaction = receiveTransaction
 
-// :: (state: EditorState) → ?{version: number, steps: [Step], clientID: number, origins: [Transaction]}
+// :: (state: EditorState) → ?{version: number, steps: [Step], clientID: union<number, string>, origins: [Transaction]}
 // Provides the data describing the editor's unconfirmed steps, which
 // you'd send to the central authority. Returns null when there is
 // nothing to send.
