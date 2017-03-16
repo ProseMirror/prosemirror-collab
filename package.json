@@ -1,6 +1,6 @@
 {
   "name": "prosemirror-collab",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "Collaborative editing for ProseMirror",
   "main": "dist/collab.js",
   "license": "MIT",
@@ -16,13 +16,13 @@
     "url": "git://github.com/prosemirror/prosemirror-collab.git"
   },
   "dependencies": {
-    "prosemirror-state": "^0.18.0"
+    "prosemirror-state": "^0.19.0"
   },
   "devDependencies": {
     "buble": "^0.15.1",
-    "prosemirror-model": "^0.18.0",
-    "prosemirror-transform": "^0.18.0",
-    "prosemirror-history": "^0.18.0",
+    "prosemirror-model": "^0.19.0",
+    "prosemirror-transform": "^0.19.0",
+    "prosemirror-history": "^0.19.0",
     "ist": "^1.0.0",
     "mocha": "^3.0.2",
     "rimraf": "^2.5.4"
