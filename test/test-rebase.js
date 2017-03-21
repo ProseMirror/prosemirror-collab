@@ -1,6 +1,6 @@
 const {Transform} = require("prosemirror-transform")
 const ist = require("ist")
-const {schema, eq, doc, blockquote, p, li, ul, em} = require("prosemirror-model/test/build")
+const {schema, eq, doc, blockquote, p, li, ul, em} = require("prosemirror-test-builder")
 
 const {rebaseSteps} = require("../dist/collab")
 
