@@ -8,7 +8,7 @@ class Rebaseable {
   }
 }
 
-// : (Transform, [Rebaseable], [Step]) → [Rebaseable]
+// : ([Rebaseable], [Step], Transform) → [Rebaseable]
 // Undo a given set of steps, apply a set of other steps, and then
 // redo them.
 function rebaseSteps(steps, over, transform) {
