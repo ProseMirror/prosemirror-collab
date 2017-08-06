@@ -1,4 +1,4 @@
-const {Plugin, PluginKey} = require("prosemirror-state")
+import {Plugin, PluginKey} from "prosemirror-state"
 
 class Rebaseable {
   constructor(step, inverted, origin) {
@@ -11,7 +11,7 @@ class Rebaseable {
 // : ([Rebaseable], [Step], Transform) → [Rebaseable]
 // Undo a given set of steps, apply a set of other steps, and then
 // redo them.
-function rebaseSteps(steps, over, transform) {
+export function rebaseSteps(steps, over, transform) {
   for (let i = steps.length - 1; i >= 0; i--) transform.step(steps[i].inverted)
   for (let i = 0; i < over.length; i++) transform.step(over[i])
   let result = []
@@ -25,7 +25,6 @@ function rebaseSteps(steps, over, transform) {
   }
   return result
 }
-exports.rebaseSteps = rebaseSteps
 
 // This state field accumulates changes that have to be sent to the
 // central authority in the collaborating group and makes it possible
@@ -73,7 +72,7 @@ const collabKey = new PluginKey("collab")
 //     clientID:: ?union<number, string>
 //     This client's ID, used to distinguish its changes from those of
 //     other clients. Defaults to a random 32-bit number.
-function collab(config = {}) {
+export function collab(config = {}) {
   config = {version: config.version || 0,
             clientID: config.clientID == null ? Math.floor(Math.random() * 0xFFFFFFFF) : config.clientID}
 
@@ -95,13 +94,12 @@ function collab(config = {}) {
     config
   })
 }
-exports.collab = collab
 
 // :: (state: EditorState, steps: [Step], clientIDs: [union<number, string>]) → Transaction
 // Create a transaction that represents a set of new steps received from
 // the authority. Applying this transaction moves the state forward to
 // adjust to the authority's view of the document.
-function receiveTransaction(state, steps, clientIDs) {
+export function receiveTransaction(state, steps, clientIDs) {
   // Pushes a set of steps (received from the central authority) into
   // the editor state (which should have the collab plugin enabled).
   // Will recognize its own changes, and confirm unconfirmed steps as
@@ -133,7 +131,6 @@ function receiveTransaction(state, steps, clientIDs) {
   let newCollabState = new CollabState(version, unconfirmed)
   return tr.setMeta("rebased", nUnconfirmed).setMeta("addToHistory", false).setMeta(collabKey, newCollabState)
 }
-exports.receiveTransaction = receiveTransaction
 
 // :: (state: EditorState) → ?{version: number, steps: [Step], clientID: union<number, string>, origins: [Transaction]}
 // Provides the data describing the editor's unconfirmed steps, which
@@ -145,7 +142,7 @@ exports.receiveTransaction = receiveTransaction
 // metadata for the steps, but note that the steps may have been
 // rebased, whereas the origin transactions are still the old,
 // unchanged objects.
-function sendableSteps(state) {
+export function sendableSteps(state) {
   let collabState = collabKey.getState(state)
   if (collabState.unconfirmed.length == 0) return null
   return {
@@ -155,12 +152,10 @@ function sendableSteps(state) {
     get origins() { return this._origins || (this._origins = collabState.unconfirmed.map(s => s.origin)) }
   }
 }
-exports.sendableSteps = sendableSteps
 
 // :: (EditorState) → number
 // Get the version up to which the collab plugin has synced with the
 // central authority.
-function getVersion(state) {
+export function getVersion(state) {
   return collabKey.getState(state).version
 }
-exports.getVersion = getVersion
