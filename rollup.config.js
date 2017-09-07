@@ -1,8 +1,7 @@
 module.exports = {
-  entry: "./src/collab.js",
-  dest: "dist/collab.js",
-  format: "cjs",
-  sourceMap: true,
+  input: "./src/collab.js",
+  output: {format: "cjs", file: "dist/collab.js"},
+  sourcemap: true,
   plugins: [require("rollup-plugin-buble")()],
   external(id) { return !/^[\.\/]/.test(id) }
 }
