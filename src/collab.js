@@ -133,8 +133,8 @@ export function receiveTransaction(state, steps, clientIDs) {
 }
 
 // :: (state: EditorState) → ?{version: number, steps: [Step], clientID: union<number, string>, origins: [Transaction]}
-// Provides the data describing the editor's unconfirmed steps, which
-// you'd send to the central authority. Returns null when there is
+// Provides data describing the editor's unconfirmed steps, which need
+// to be sent to the central authority. Returns null when there is
 // nothing to send.
 //
 // `origins` holds the _original_ transactions that produced each
