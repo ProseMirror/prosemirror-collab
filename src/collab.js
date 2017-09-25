@@ -91,7 +91,10 @@ export function collab(config = {}) {
       }
     },
 
-    config
+    config,
+    // This is used to notify the history plugin to not merge steps,
+    // so that the history can be rebased.
+    historyPreserveItems: true
   })
 }
 

@@ -5,7 +5,7 @@ const ist = require("ist")
 
 const {collab, receiveTransaction, sendableSteps} = require("../dist/collab")
 
-const histPlugin = history({preserveItems: true})
+const histPlugin = history()
 
 class DummyServer {
   constructor(doc, n = 2) {
