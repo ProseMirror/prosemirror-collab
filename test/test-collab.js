@@ -193,6 +193,18 @@ describe("collab", () => {
     ist(s.states[0].selection.head, 3)
   })
 
+  it("handles conflicting steps", () => {
+    let s = new DummyServer(doc(p("abcde")))
+    s.delay(0, () => {
+      s.update(0, s => s.tr.delete(3, 4))
+      s.type(0, "x")
+      s.update(1, s => s.tr.delete(2, 5))
+    })
+    s.undo(0)
+    s.undo(0)
+    s.conv(doc(p("ae")))
+  })
+
   it("can undo simultaneous typing", () => {
     let s = new DummyServer(doc(p("A"), p("B")))
     s.update(0, sel(2))
