@@ -122,9 +122,8 @@ export function receiveTransaction(state, steps, clientIDs) {
   if (!steps.length)
     return state.tr.setMeta(collabKey, new CollabState(version, unconfirmed))
 
-  let nUnconfirmed = unconfirmed.length
   let tr = state.tr
-  if (nUnconfirmed) {
+  if (unconfirmed.length) {
     unconfirmed = rebaseSteps(unconfirmed, steps, tr)
   } else {
     for (let i = 0; i < steps.length; i++) tr.step(steps[i])
@@ -132,7 +131,7 @@ export function receiveTransaction(state, steps, clientIDs) {
   }
 
   let newCollabState = new CollabState(version, unconfirmed)
-  return tr.setMeta("rebased", nUnconfirmed).setMeta("addToHistory", false).setMeta(collabKey, newCollabState)
+  return tr.setMeta("rebased", unconfirmed.length).setMeta("addToHistory", false).setMeta(collabKey, newCollabState)
 }
 
 // :: (state: EditorState) → ?{version: number, steps: [Step], clientID: union<number, string>, origins: [Transaction]}
