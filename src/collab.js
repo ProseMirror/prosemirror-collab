@@ -56,7 +56,7 @@ function unconfirmedFrom(transform) {
   return result
 }
 
-const collabKey = new PluginKey("collab")
+export const collabKey = new PluginKey("collab")
 
 // :: (?Object) → Plugin
 //
