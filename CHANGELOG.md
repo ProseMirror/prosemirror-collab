@@ -1,3 +1,9 @@
+## 1.1.0 (2018-08-21)
+
+### New features
+
+[`receiveTransaction`](https://prosemirror.net/docs/ref/#collab.receiveTransaction) now supports a `mapSelectionBackward` option that makes it so that text selections are mapped to stay in place when remote changes insert content at their position.
+
 ## 0.19.0 (2017-03-16)
 
 ### New features
