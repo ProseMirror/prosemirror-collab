@@ -1,4 +1,4 @@
-import {Plugin, PluginKey} from "prosemirror-state"
+import {Plugin, PluginKey, TextSelection} from "prosemirror-state"
 
 class Rebaseable {
   constructor(step, inverted, origin) {
@@ -98,11 +98,21 @@ export function collab(config = {}) {
   })
 }
 
-// :: (state: EditorState, steps: [Step], clientIDs: [union<number, string>]) → Transaction
+// :: (state: EditorState, steps: [Step], clientIDs: [union<number, string>], options: ?Object) → Transaction
 // Create a transaction that represents a set of new steps received from
 // the authority. Applying this transaction moves the state forward to
 // adjust to the authority's view of the document.
-export function receiveTransaction(state, steps, clientIDs) {
+//
+//   options::- Additional options.
+//
+//     mapSelectionBackward:: ?boolean
+//     When enabled (the default is `false`), if the current selection
+//     is a [text selection](#state.TextSelection), its sides are
+//     mapped with a negative bias for this transaction, so that
+//     content inserted at the cursor ends up after the cursor. Users
+//     usually prefer this, but it isn't done by default for reasons
+//     of backwards compatibility.
+export function receiveTransaction(state, steps, clientIDs, options) {
   // Pushes a set of steps (received from the central authority) into
   // the editor state (which should have the collab plugin enabled).
   // Will recognize its own changes, and confirm unconfirmed steps as
@@ -132,6 +142,11 @@ export function receiveTransaction(state, steps, clientIDs) {
   }
 
   let newCollabState = new CollabState(version, unconfirmed)
+  if (options && options.mapSelectionBackard && state.selection instanceof TextSelection) {
+    tr.setSelection(TextSelection.between(tr.doc.resolve(tr.mapping.map(state.selection.head, -1)),
+                                          tr.doc.resolve(tr.mapping.map(state.selection.anchor, -1)), -1))
+    tr.updated &= ~1
+  }
   return tr.setMeta("rebased", nUnconfirmed).setMeta("addToHistory", false).setMeta(collabKey, newCollabState)
 }
 
