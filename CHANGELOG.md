@@ -1,3 +1,9 @@
+## 1.1.1 (2018-10-09)
+
+### Bug fixes
+
+Fix issue where `mapSelectionBackward` didn't work because of a typo.
+
 ## 1.1.0 (2018-08-21)
 
 ### New features
