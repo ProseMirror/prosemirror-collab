@@ -142,7 +142,7 @@ export function receiveTransaction(state, steps, clientIDs, options) {
   }
 
   let newCollabState = new CollabState(version, unconfirmed)
-  if (options && options.mapSelectionBackard && state.selection instanceof TextSelection) {
+  if (options && options.mapSelectionBackward && state.selection instanceof TextSelection) {
     tr.setSelection(TextSelection.between(tr.doc.resolve(tr.mapping.map(state.selection.head, -1)),
                                           tr.doc.resolve(tr.mapping.map(state.selection.anchor, -1)), -1))
     tr.updated &= ~1
