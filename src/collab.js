@@ -143,8 +143,8 @@ export function receiveTransaction(state, steps, clientIDs, options) {
 
   let newCollabState = new CollabState(version, unconfirmed)
   if (options && options.mapSelectionBackward && state.selection instanceof TextSelection) {
-    tr.setSelection(TextSelection.between(tr.doc.resolve(tr.mapping.map(state.selection.head, -1)),
-                                          tr.doc.resolve(tr.mapping.map(state.selection.anchor, -1)), -1))
+    tr.setSelection(TextSelection.between(tr.doc.resolve(tr.mapping.map(state.selection.anchor, -1)),
+                                          tr.doc.resolve(tr.mapping.map(state.selection.head, -1)), -1))
     tr.updated &= ~1
   }
   return tr.setMeta("rebased", nUnconfirmed).setMeta("addToHistory", false).setMeta(collabKey, newCollabState)
