@@ -1,3 +1,9 @@
+## 1.1.2 (2019-05-29)
+
+### Bug fixes
+
+Fix an issue where in `mapSelectionBackward` mode, the plugin flipped the head and anchor of the selection, leading to selection glitches during collaborative editing.
+
 ## 1.1.1 (2018-10-09)
 
 ### Bug fixes
