@@ -1,10 +1,11 @@
-import {Plugin, PluginKey, TextSelection} from "prosemirror-state"
+import {Plugin, PluginKey, TextSelection, tracers} from "prosemirror-state"
 
 class Rebaseable {
-  constructor(step, inverted, origin) {
+  constructor(step, inverted, origin, tracers) {
     this.step = step
     this.inverted = inverted
     this.origin = origin
+    this.tracers = tracers
   }
 }
 
@@ -12,15 +13,24 @@ class Rebaseable {
 // Undo a given set of steps, apply a set of other steps, and then
 // redo them.
 export function rebaseSteps(steps, over, transform) {
-  for (let i = steps.length - 1; i >= 0; i--) transform.step(steps[i].inverted)
+  let trace = null
+  for (let i = steps.length - 1; i >= 0; i--) {
+    let {inverted, tracers} = steps[i]
+    for (let j = 0; j < tracers.length; j++)
+      (trace || (trace = [])).push(tracers[j].copy(transform.steps.length, "rebase-invert"))
+    transform.step(inverted)
+  }
   for (let i = 0; i < over.length; i++) transform.step(over[i])
   let result = []
   for (let i = 0, mapFrom = steps.length; i < steps.length; i++) {
-    let mapped = steps[i].step.map(transform.mapping.slice(mapFrom))
+    let {step, tracers, origin} = steps[i]
+    let mapped = step.map(transform.mapping.slice(mapFrom))
     mapFrom--
     if (mapped && !transform.maybeStep(mapped).failed) {
+      for (let j = 0; j < tracers.length; j++)
+        (trace || (trace = [])).push(tracers[j].copy(transform.steps.length - 1, "rebase-reapply"))
       transform.mapping.setMirror(mapFrom, transform.steps.length - 1)
-      result.push(new Rebaseable(mapped, mapped.invert(transform.docs[transform.docs.length - 1]), steps[i].origin))
+      result.push(new Rebaseable(mapped, mapped.invert(transform.docs[transform.docs.length - 1]), origin, tracers))
     }
   }
   return result
@@ -48,11 +58,17 @@ class CollabState {
 }
 
 function unconfirmedFrom(transform) {
-  let result = []
-  for (let i = 0; i < transform.steps.length; i++)
+  let result = [], trace = transform.getMeta(tracers)
+  for (let i = 0; i < transform.steps.length; i++) {
+    let tracers = null
+    if (trace) for (let j = 0; j < trace.length; j++) {
+      if (trace[j].index == i) (tracers || (tracers = [])).push(trace[j])
+    }
     result.push(new Rebaseable(transform.steps[i],
                                transform.steps[i].invert(transform.docs[i]),
-                               transform))
+                               transform,
+                               tracers || none))
+  }
   return result
 }
 
@@ -97,6 +113,8 @@ export function collab(config = {}) {
     historyPreserveItems: true
   })
 }
+
+const none = []
 
 // :: (state: EditorState, steps: [Step], clientIDs: [union<number, string>], options: ?Object) → Transaction
 // Create a transaction that represents a set of new steps received from

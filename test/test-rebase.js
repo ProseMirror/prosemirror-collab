@@ -9,7 +9,7 @@ function runRebase(transforms, expected) {
   transforms.forEach(transform => {
     let rebased = new Transform(transform.doc)
     let start = transform.steps.length + full.steps.length
-    rebaseSteps(transform.steps.map((s, i) => ({step: s, inverted: s.invert(transform.docs[i])})),
+    rebaseSteps(transform.steps.map((s, i) => ({step: s, inverted: s.invert(transform.docs[i]), tracers: []})),
                 full.steps, rebased)
     for (let i = start; i < rebased.steps.length; i++) full.step(rebased.steps[i])
   })
