@@ -33,6 +33,7 @@ export function rebaseSteps(steps, over, transform) {
       result.push(new Rebaseable(mapped, mapped.invert(transform.docs[transform.docs.length - 1]), origin, tracers))
     }
   }
+  if (trace) result.setMeta(tracers, trace)
   return result
 }
 
