@@ -3,6 +3,7 @@
   "version": "1.1.2",
   "description": "Collaborative editing for ProseMirror",
   "main": "dist/collab.js",
+  "module": "src/collab.js",
   "license": "MIT",
   "maintainers": [
     {
