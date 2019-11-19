@@ -3,7 +3,7 @@ const {history, undo, redo, closeHistory} = require("prosemirror-history")
 const {schema, eq, doc, p} = require("prosemirror-test-builder")
 const ist = require("ist")
 
-const {collab, receiveTransaction, sendableSteps} = require("../dist/collab")
+const {collab, receiveTransaction, sendableSteps} = require("..")
 
 const histPlugin = history()
 
