@@ -3,7 +3,7 @@
   "version": "1.2.1",
   "description": "Collaborative editing for ProseMirror",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "module": "dist/index.es.js",
   "license": "MIT",
   "maintainers": [
     {
