@@ -44,7 +44,7 @@ You can now use strings (as well as numbers) as client IDs (this already worked,
 
 ### New features
 
-[`sendableSteps`](http://prosemirror.net/docs/ref/version/0.18.0.html#collab.sendableSteps) now also returns information about the original transactions that produced the steps.
+[`sendableSteps`](https://prosemirror.net/docs/ref/version/0.18.0.html#collab.sendableSteps) now also returns information about the original transactions that produced the steps.
 
 ## 0.11.0 (2016-09-21)
 
@@ -52,14 +52,14 @@ You can now use strings (as well as numbers) as client IDs (this already worked,
 
 Moved into a separate module.
 
-Interface [adjusted](http://prosemirror.net/docs/ref/version/0.11.0.html#collab) to work with the new
-[plugin](http://prosemirror.net/docs/ref/version/0.11.0.html#state.Plugin) system.
+Interface [adjusted](https://prosemirror.net/docs/ref/version/0.11.0.html#collab) to work with the new
+[plugin](https://prosemirror.net/docs/ref/version/0.11.0.html#state.Plugin) system.
 
 ### New features
 
 When receiving changes, the module now
-[generates](http://prosemirror.net/docs/ref/version/0.11.0.html#collab.receiveAction) a regular
-[transform action](http://prosemirror.net/docs/ref/version/0.11.0.html#state.TransformAction) instead of hard-setting
+[generates](https://prosemirror.net/docs/ref/version/0.11.0.html#collab.receiveAction) a regular
+[transform action](https://prosemirror.net/docs/ref/version/0.11.0.html#state.TransformAction) instead of hard-setting
 the editor's document. This solves problematic corner cases for code
 keeping track of the document by listening to transform actions.
 
