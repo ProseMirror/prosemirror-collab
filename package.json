@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "ist": "^1.0.0",
-    "mocha": "^3.0.2",
+    "mocha": "^9.1.2",
     "prosemirror-history": "^1.0.0",
     "prosemirror-model": "^1.0.0",
     "prosemirror-test-builder": "^1.0.0",
