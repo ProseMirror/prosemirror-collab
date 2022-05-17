@@ -1,70 +1,73 @@
-const {EditorState, Selection} = require("prosemirror-state")
-const {history, undo, redo, closeHistory} = require("prosemirror-history")
-const {schema, eq, doc, p} = require("prosemirror-test-builder")
-const ist = require("ist")
+import {EditorState, Selection, Plugin, Transaction} from "prosemirror-state"
+import {history, undo, redo, closeHistory} from "prosemirror-history"
+import {Node} from "prosemirror-model"
+import {Step} from "prosemirror-transform"
+import {schema, eq, doc, p} from "prosemirror-test-builder"
+import ist from "ist"
 
-const {collab, receiveTransaction, sendableSteps} = require("..")
+import {collab, receiveTransaction, sendableSteps} from "prosemirror-collab"
 
 const histPlugin = history()
 
 class DummyServer {
-  constructor(doc, n = 2) {
-    this.states = []
-    this.plugins = []
+  states: EditorState[] = []
+  plugins: Plugin[] = []
+  steps: Step[] = []
+  clientIDs: number[] = []
+  delayed: number[] = []
+
+  constructor(doc?: Node, n = 2) {
     for (let i = 0; i < n; i++) {
       let plugin = collab()
       this.plugins.push(plugin)
       this.states.push(EditorState.create({doc, schema, plugins: [histPlugin, plugin]}))
     }
-    this.steps = []
-    this.clientIDs = []
-    this.delayed = []
   }
 
-  sync(n) {
+  sync(n: number) {
     let state = this.states[n], version = this.plugins[n].getState(state).version
     if (version != this.steps.length)
       this.states[n] = state.apply(receiveTransaction(state, this.steps.slice(version), this.clientIDs.slice(version)))
   }
 
-  send(n) {
+  send(n: number) {
     let sendable = sendableSteps(this.states[n])
     if (sendable && sendable.version == this.steps.length) {
       this.steps = this.steps.concat(sendable.steps)
-      for (let i = 0; i < sendable.steps.length; i++) this.clientIDs.push(sendable.clientID)
+      for (let i = 0; i < sendable.steps.length; i++) this.clientIDs.push(sendable.clientID as number)
     }
   }
 
-  broadcast(n) {
+  broadcast(n: number) {
     if (this.delayed.indexOf(n) > -1) return
     this.sync(n)
     this.send(n)
     for (let i = 0; i < this.states.length; i++) if (i != n) this.sync(i)
   }
 
-  update(n, f) {
+  update(n: number, f: (state: EditorState) => Transaction) {
     this.states[n] = this.states[n].apply(f(this.states[n]))
     this.broadcast(n)
   }
 
-  type(n, text, pos) {
-    this.update(n, s => s.tr.insertText(text, pos || s.selection.head))
+  type(n: number, text: string, pos?: number) {
+    this.update(n, s => s.tr.insertText(text, pos == null ? s.selection.head : pos))
   }
 
-  undo(n) {
+  undo(n: number) {
     undo(this.states[n], tr => this.update(n, () => tr))
   }
 
-  redo(n) {
+  redo(n: number) {
     redo(this.states[n], tr => this.update(n, () => tr))
   }
 
-  conv(d) {
+  conv(d: Node | string) {
     if (typeof d == "string") d = doc(p(d))
     this.states.forEach(state => ist(state.doc, d, eq))
   }
 
-  delay(n, f) {
+  delay(n: number, f: () => void) {
     this.delayed.push(n)
     f()
     this.delayed.pop()
@@ -72,8 +75,8 @@ class DummyServer {
   }
 }
 
-function sel(near) {
-  return s => s.tr.setSelection(Selection.near(s.doc.resolve(near)))
+function sel(near: number) {
+  return (s: EditorState) => s.tr.setSelection(Selection.near(s.doc.resolve(near)))
 }
 
 describe("collab", () => {
@@ -99,7 +102,7 @@ describe("collab", () => {
   })
 
   it("converges with three peers", () => {
-    let s = new DummyServer(null, 3)
+    let s = new DummyServer(undefined, 3)
     s.type(0, "A")
     s.type(1, "U")
     s.type(2, "X")
@@ -110,7 +113,7 @@ describe("collab", () => {
   })
 
   it("converges with three peers with multiple steps", () => {
-    let s = new DummyServer(null, 3)
+    let s = new DummyServer(undefined, 3)
     s.type(0, "A")
     s.delay(1, () => {
       s.type(1, "U")

@@ -1,25 +1,26 @@
-const {Transform} = require("prosemirror-transform")
-const ist = require("ist")
-const {schema, eq, doc, blockquote, p, li, ul, em} = require("prosemirror-test-builder")
+import {Transform} from "prosemirror-transform"
+import {Node} from "prosemirror-model"
+import {schema, eq, doc, blockquote, p, li, ul, em} from "prosemirror-test-builder"
+import ist from "ist"
 
-const {rebaseSteps} = require("..")
+import {rebaseSteps} from "prosemirror-collab"
 
-function runRebase(transforms, expected) {
+function runRebase(transforms: readonly Transform[], expected: Node) {
   let start = transforms[0].before, full = new Transform(start)
   transforms.forEach(transform => {
     let rebased = new Transform(transform.doc)
     let start = transform.steps.length + full.steps.length
-    rebaseSteps(transform.steps.map((s, i) => ({step: s, inverted: s.invert(transform.docs[i])})),
+    rebaseSteps(transform.steps.map((s, i) => ({step: s, inverted: s.invert(transform.docs[i]), origin: transform})),
                 full.steps, rebased)
     for (let i = start; i < rebased.steps.length; i++) full.step(rebased.steps[i])
   })
 
   ist(full.doc, expected, eq)
 
-  for (let tag in start.tag) {
-    let mapped = full.mapping.mapResult(start.tag[tag])
+  for (let tag in (start as any).tag) {
+    let mapped = full.mapping.mapResult((start as any).tag[tag])
 
-    let exp = expected.tag[tag]
+    let exp = (expected as any).tag[tag]
     if (mapped.deleted) {
       if (exp) throw new Error("Tag " + tag + " was unexpectedly deleted")
     } else {
@@ -29,7 +30,7 @@ function runRebase(transforms, expected) {
   }
 }
 
-function permute(array) {
+function permute<T>(array: readonly T[]): readonly (readonly T[])[] {
   if (array.length < 2) return [array]
   let result = []
   for (let i = 0; i < array.length; i++) {
@@ -40,23 +41,24 @@ function permute(array) {
   return result
 }
 
-function rebase(doc, ...clients) {
-  let expected = clients.pop()
-  runRebase(clients.map(cl => cl(new Transform(doc))), expected)
+function rebase(doc: Node, ...clients: (((tr: Transform) => Transform) | Node)[]) {
+  let expected = clients.pop() as Node
+  runRebase((clients as ((tr: Transform) => Transform)[]).map(cl => cl(new Transform(doc))), expected)
 }
 
-function rebase$(doc, ...clients) {
-  let expected = clients.pop()
-  permute(clients.map(cl => cl(new Transform(doc)))).forEach(transforms => runRebase(transforms, expected))
+function rebase$(doc: Node, ...clients: (((tr: Transform) => Transform) | Node)[]) {
+  let expected = clients.pop() as Node
+  permute((clients as ((tr: Transform) => Transform)[]).map(cl => cl(new Transform(doc))))
+    .forEach(transforms => runRebase(transforms, expected))
 }
 
-function type(tr, pos, text) {
+function type(tr: Transform, pos: number, text: string) {
   return tr.replaceWith(pos, pos, schema.text(text))
 }
 
-function wrap(tr, pos, type) {
+function wrap(tr: Transform, pos: number, type: string) {
   let $pos = tr.doc.resolve(pos)
-  return tr.wrap($pos.blockRange($pos), [{type: schema.nodes[type]}])
+  return tr.wrap($pos.blockRange($pos)!, [{type: schema.nodes[type]}])
 }
 
 describe("rebaseSteps", () => {
@@ -133,8 +135,9 @@ describe("rebaseSteps", () => {
 
   it("deletes inserts in replaced context", () => {
     rebase(doc(p("b<before>efore"), blockquote(ul(li(p("o<1>ne")), li(p("t<2>wo")), li(p("thr<3>ee")))), p("a<after>fter")),
-           tr => tr.replace(tr.doc.tag[1], tr.doc.tag[3], doc(p("a"), blockquote(p("b")), p("c")).slice(2, 9)),
-           tr => type(tr, tr.doc.tag[2], "ayay"),
+           tr => tr.replace((tr.doc as any).tag[1], (tr.doc as any).tag[3],
+                            doc(p("a"), blockquote(p("b")), p("c")).slice(2, 9)),
+           tr => type(tr, (tr.doc as any).tag[2], "ayay"),
            doc(p("b<before>efore"), blockquote(ul(li(p("o"), blockquote(p("b")), p("<3>ee")))), p("a<after>fter")))
   })
 
@@ -147,15 +150,15 @@ describe("rebaseSteps", () => {
 
   it("handle concurrent removal of blocks", () => {
     rebase(doc(p("a"), "<1>", p("b"), "<2>", p("c")),
-           tr => tr.delete(tr.doc.tag[1], tr.doc.tag[2]),
-           tr => tr.delete(tr.doc.tag[1], tr.doc.tag[2]),
+           tr => tr.delete((tr.doc as any).tag[1], (tr.doc as any).tag[2]),
+           tr => tr.delete((tr.doc as any).tag[1], (tr.doc as any).tag[2]),
            doc(p("a"), "<2>", p("c")))
   })
 
   it("discards edits in removed blocks", () => {
     rebase$(doc(p("a"), "<1>", p("b<2>"), "<3>", p("c")),
-            tr => tr.delete(tr.doc.tag[1], tr.doc.tag[3]),
-            tr => type(tr, tr.doc.tag[2], "ay"),
+            tr => tr.delete((tr.doc as any).tag[1], (tr.doc as any).tag[3]),
+            tr => type(tr, (tr.doc as any).tag[2], "ay"),
             doc(p("a"), "<3>", p("c")))
   })
 
