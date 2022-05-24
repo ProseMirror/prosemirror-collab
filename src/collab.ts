@@ -67,7 +67,7 @@ type CollabConfig = {
 
 /// Creates a plugin that enables the collaborative editing framework
 /// for the editor.
-export function collab(config: CollabConfig = {}) {
+export function collab(config: CollabConfig = {}): Plugin {
   let conf: Required<CollabConfig> = {
     version: config.version || 0,
     clientID: config.clientID == null ? Math.floor(Math.random() * 0xFFFFFFFF) : config.clientID
@@ -88,7 +88,6 @@ export function collab(config: CollabConfig = {}) {
       }
     },
 
-    // @ts-ignore
     config: conf,
 
     // This is used to notify the history plugin to not merge steps,
