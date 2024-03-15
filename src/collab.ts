@@ -18,9 +18,15 @@ export function rebaseSteps(steps: readonly Rebaseable[], over: readonly Step[],
   for (let i = 0, mapFrom = steps.length; i < steps.length; i++) {
     let mapped = steps[i].step.map(transform.mapping.slice(mapFrom))
     mapFrom--
-    if (mapped && !transform.maybeStep(mapped).failed) {
-      transform.mapping.setMirror(mapFrom, transform.steps.length - 1)
-      result.push(new Rebaseable(mapped, mapped.invert(transform.docs[transform.docs.length - 1]), steps[i].origin))
+    if (mapped) {
+      try {
+        if (!transform.maybeStep(mapped).failed) {
+          transform.mapping.setMirror(mapFrom, transform.steps.length - 1)
+          result.push(new Rebaseable(mapped, mapped.invert(transform.docs[transform.docs.length - 1]), steps[i].origin))
+        }
+      } catch {
+        // if applying a step induces an error, omit it from the result
+      }
     }
   }
   return result
